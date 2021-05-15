@@ -816,7 +816,7 @@ function ble-update/.make {
     shift
   fi
 
-  if "$MAKE" -q "$@"; then
+  if ! "$MAKE" -q "$@"; then
     if [[ $sudo ]]; then
       sudo "$MAKE" "$@"
     else
@@ -829,7 +829,9 @@ function ble-update/.make {
   fi
 }
 function ble-update/.reload {
-  [[ $- == *i* && $_ble_attached ]] && ble-reload
+  if [[ $- == *i* && $_ble_attached ]]; then
+    ble-reload
+  fi
 }
 function ble-update {
   if (($#)); then
@@ -840,8 +842,14 @@ function ble-update {
   if [[ $_ble_base_package_type ]] && ble/is-function ble/base/package:"$_ble_base_package_type"/update; then
     ble/util/print "ble-update: delegate to '$_ble_base_package_type' package manager..." >&2
     ble/base/package:"$_ble_base_package_type"/update; local ext=$?
-    ((ext!=125)) && return "$ext"
-    ble/util/print 'ble-update: fallback to the default update process.' >&2
+    if ((ext==125)); then
+      ble/util/print 'ble-update: fallback to the default update process.' >&2
+    if [[ $ext -eq 0 || $ext -eq 6 && $_ble_base/ble.sh -nt $_ble_base_run/$$.load ]]; then
+      ble-update/.reload
+      return $?
+    else
+      return "$ext"
+    fi
   fi
 
   # check make
@@ -890,9 +898,9 @@ function ble-update {
           else
             ble-update/.make INSDIR="$_ble_base" INSDIR_DOC="$insdir_doc" install
           fi ); local ext=$?
-      if ((ext==0)) || [[ $ext -eq 6 && $_ble_base/ble.sh -nt $_ble_base_run/$$.load ]]; then
+      if [[ $ext -eq 0 || $ext -eq 6 && $_ble_base/ble.sh -nt $_ble_base_run/$$.load ]]; then
         ble-update/.reload
-        return 0
+        return $?
       fi
       return "$ext"
     fi
