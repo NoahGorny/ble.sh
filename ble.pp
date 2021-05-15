@@ -844,7 +844,7 @@ function ble-update {
     ble/base/package:"$_ble_base_package_type"/update; local ext=$?
     if ((ext==125)); then
       ble/util/print 'ble-update: fallback to the default update process.' >&2
-    if [[ $ext -eq 0 || $ext -eq 6 && $_ble_base/ble.sh -nt $_ble_base_run/$$.load ]]; then
+    elif [[ $ext -eq 0 || $ext -eq 6 && $_ble_base/ble.sh -nt $_ble_base_run/$$.load ]]; then
       ble-update/.reload
       return $?
     else
@@ -905,22 +905,7 @@ function ble-update {
       return "$ext"
     fi
   fi
-
-  if [[ $_ble_base == /usr/share/* ]]; then
-    : # detect package manager
-    # if ble/bin#has dnf; then
-    #   sudo dnf update -y blesh
-    # elif ble/bin#has apt; then
-    #   sudo apt upgrade -y blesh
-    # elif ble/bin#has yum; then
-    #   sudo dnf update -y blesh
-    # elif ble/bin#has pacman && ble/bin#has makepkg; then
-    #   git clone https://aur.archlinux.org/blesh-git.git
-    #   cd blesh-git
-    #   makepkg -fsi
-    # fi
-  fi
-
+  
   if ((EUID!=0)) && ! ble-update/.check-install-directory-ownership; then
     # _ble_base が自分の物でない時は sudo でやり直す
     sudo "$BASH" "$_ble_base/ble.sh" --update &&
